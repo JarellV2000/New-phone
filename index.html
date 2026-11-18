@@ -12,6 +12,20 @@
 'use strict';
 const key='newphone-app-v1';let apps=[];let editing=null;const $=id=>document.getElementById(id);
 try{const stored=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(stored))apps=stored.filter(x=>x&&typeof x.name==='string'&&typeof x.url==='string')}catch(e){}
+const officialGame={id:'official-ncod',name:'NO CAP OR DRINK',url:'https://jarellv2000.github.io/no-cap-or-drink-/',emoji:'🎮'};
+try{
+  const seededKey='newphone-official-ncod-seeded-v1';
+  if(localStorage.getItem(seededKey)!=='yes'){
+    if(!apps.some(a=>a.url.replace(/\/$/,'')===officialGame.url.replace(/\/$/,''))){
+      apps.unshift(officialGame);
+      localStorage.setItem(key,JSON.stringify(apps));
+    }
+    localStorage.setItem(seededKey,'yes');
+  }
+}catch(e){
+  if(!apps.some(a=>a.url===officialGame.url))apps.unshift(officialGame);
+}
+
 function persist(){try{localStorage.setItem(key,JSON.stringify(apps))}catch(e){notify('Could not save shortcuts in this browser.')}render()}
 function notify(message){const t=$('toast');t.textContent=message;t.style.display='block';clearTimeout(notify.timer);notify.timer=setTimeout(()=>t.style.display='none',3400)}
 function safeUrl(value){try{const u=new URL(value);return u.protocol==='https:'||u.protocol==='http:'?u.href:null}catch(e){return null}}
