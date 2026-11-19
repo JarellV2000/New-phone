@@ -1,1 +1,208 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#ffffff"><link rel="manifest" href="manifest.webmanifest"><title>TaskPad</title><style>*{box-sizing:border-box}body{margin:0;font:17px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#171717}main{max-width:480px;margin:auto;padding: max(32px,env(safe-area-inset-top)) 24px 32px}button,input{font:inherit;border-radius:12px;padding:14px;min-height:48px}button{border:0;background:#ececec;color:inherit;cursor:pointer}input{width:100%;border:1px solid #ccc;margin:8px 0}header{display:flex;justify-content:space-between;align-items:center}h1{font-size:34px;letter-spacing:-1px}.task{display:flex;gap:12px;align-items:center;padding:15px 0;border-bottom:1px solid #eee}.task input{width:20px;min-height:20px}.muted{color:#777;font-size:14px}.dark{background:#101010;color:white;min-height:100dvh}.dark button{background:#282020}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid button{min-height:85px;border:1px solid #503030}.red{color:#ff5656}[hidden]{display:none!important}</style><main id="pad"><header><h1>TaskPad</h1><button id="access" aria-label="Private access">•••</button></header><p class="muted">Today · My tasks</p><form id="add"><input id="task" maxlength="150" required placeholder="Add a task"><button>Add task</button></form><section id="tasks"></section></main><main id="gate" hidden><button id="back">‹ TaskPad</button><h1>Private access</h1><p>Account services are not connected in this development preview.</p><label>Username<input autocomplete="username" disabled></label><label>Password<input type="password" autocomplete="current-password" disabled></label><button disabled>Sign in</button><p class="muted">No real credentials should be entered in this preview.</p><p><a href="owner.html">Owner access</a></p><button id="preview">Preview home screen</button></main><main id="phone" hidden><header><h1>New<span class="red">Phone</span></h1><button id="lock">Exit preview</button></header><p class="muted">Interface preview · not authenticated</p><div class="grid" id="apps"></div><p id="status" role="status"></p></main><script>const $=id=>document.getElementById(id);let tasks=[];try{tasks=JSON.parse(localStorage.getItem('taskpad.tasks')||'[]');if(!Array.isArray(tasks))tasks=[]}catch{}function save(){try{localStorage.setItem('taskpad.tasks',JSON.stringify(tasks))}catch{}render()}function render(){$('tasks').replaceChildren();tasks.forEach((t,i)=>{let row=document.createElement('label');row.className='task';let c=document.createElement('input');c.type='checkbox';c.checked=!!t.done;c.onchange=()=>{tasks[i].done=c.checked;save()};let s=document.createElement('span');s.textContent=t.text;if(t.done)s.style.textDecoration='line-through';row.append(c,s);$('tasks').append(row)})}function show(id){for(const n of ['pad','gate','phone'])$(n).hidden=n!==id;document.body.classList.toggle('dark',id==='phone')} $('add').onsubmit=e=>{e.preventDefault();let t=$('task').value.trim();if(t){tasks.push({text:t,done:false});$('task').value='';save()}};$('access').onclick=()=>show('gate');$('back').onclick=$('lock').onclick=()=>show('pad');$('preview').onclick=()=>show('phone');for(const [icon,name] of [['💬','Messages'],['👤','Contacts'],['🌐','Browser'],['🔒','Vault'],['📷','Camera'],['📝','Notes'],['📁','Files'],['⚙️','Settings']]){let b=document.createElement('button');b.textContent=icon+' '+name;b.onclick=()=>{$('status').textContent=name+' is not connected yet.'};$('apps').append(b)}render();</script></html>
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#ffffff"><link rel="manifest" href="manifest.webmanifest"><title>TaskPad</title><style>*{box-sizing:border-box}body{margin:0;font:17px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#171717}main{max-width:480px;margin:auto;padding: max(32px,env(safe-area-inset-top)) 24px 32px}button,input{font:inherit;border-radius:12px;padding:14px;min-height:48px}button{border:0;background:#ececec;color:inherit;cursor:pointer}input{width:100%;border:1px solid #ccc;margin:8px 0}header{display:flex;justify-content:space-between;align-items:center}h1{font-size:34px;letter-spacing:-1px}.task{display:flex;gap:12px;align-items:center;padding:15px 0;border-bottom:1px solid #eee}.task input{width:20px;min-height:20px}.muted{color:#777;font-size:14px}.dark{background:#101010;color:white;min-height:100dvh}.dark button{background:#282020}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid button{min-height:85px;border:1px solid #503030}.red{color:#ff5656}[hidden]{display:none!important}</style><main id="pad"><header><h1>TaskPad</h1><button id="access" aria-label="Private access">•••</button></header><p class="muted">Today · My tasks</p><form id="add"><input id="task" maxlength="150" required placeholder="Add a task"><button>Add task</button></form><section id="tasks"></section></main>
+<main id="gate" hidden>
+  <button id="back">‹ TaskPad</button>
+  <h1>Private access</h1>
+  <form id="account">
+    <label>Username<input name="username" required autocomplete="username" pattern="[a-z0-9_]{3,24}" autocapitalize="off"></label>
+    <label>Password<input name="password" required type="password" autocomplete="current-password"></label>
+    <label>Six-digit PIN<input name="pin" required type="password" inputmode="numeric" pattern="[0-9]{6}"></label>
+    <button value="login">Sign in and unlock</button>
+    <details><summary>Register with an invitation</summary>
+      <label>Invitation<input name="invitation" autocomplete="off" autocapitalize="off"></label>
+      <button value="register">Create account</button>
+    </details>
+  </form>
+  <p id="gateStatus" role="status"></p>
+  <a href="owner.html">Owner access</a>
+</main>
+<main id="phone" hidden>
+  <header><h1>New<span class="red">Phone</span></h1><button id="lock">Lock</button></header>
+  <p id="identity"></p>
+  <div class="grid"><button id="contacts">Contacts</button><button id="messages">Messages</button><button id="settings">Settings</button></div>
+  <p id="status" role="status"></p>
+  <section id="panel"></section>
+</main>
+<style>.dark input{background:#211d1d;color:white}.dark a{color:#ffa1a1}#panel button{margin:.3rem .4rem .3rem 0}#panel p{overflow-wrap:anywhere;white-space:pre-wrap}details{margin-top:1rem}</style>
+<script>
+const $=id=>document.getElementById(id);let tasks=[];try{tasks=JSON.parse(localStorage.getItem('taskpad.tasks')||'[]');if(!Array.isArray(tasks))tasks=[]}catch{}function save(){try{localStorage.setItem('taskpad.tasks',JSON.stringify(tasks))}catch{}render()}function render(){$('tasks').replaceChildren();tasks.forEach((t,i)=>{let row=document.createElement('label');row.className='task';let c=document.createElement('input');c.type='checkbox';c.checked=!!t.done;c.onchange=()=>{tasks[i].done=c.checked;save()};let s=document.createElement('span');s.textContent=t.text;if(t.done)s.style.textDecoration='line-through';row.append(c,s);$('tasks').append(row)})}function show(id){for(const n of ['pad','gate','phone'])$(n).hidden=n!==id;document.body.classList.toggle('dark',id==='phone')}
+$('add').onsubmit = event => {
+  event.preventDefault();
+  const value = $('task').value.trim();
+  if (value) { tasks.push({text:value,done:false}); $('task').value=''; save(); }
+};
+
+const url = 'https://ditmhbtzlghispkaowgw.supabase.co';
+const key = "sb_publishable_2kkNxvyShXlwdJdKy2mP3Q_RvchRa_a";
+let session = null;
+let profile = null;
+let screenVersion = 0;
+let activeChat = null;
+let pending = false;
+const panel = $('panel');
+const account = $('account');
+
+async function request(path, body, method = body === undefined ? 'GET' : 'POST', token = session?.access_token) {
+  const response = await fetch(url + path, {
+    method,
+    headers: {
+      apikey: key,
+      ...(token ? {Authorization: 'Bearer ' + token} : {}),
+      'Content-Type': 'application/json',
+      ...(method === 'PATCH' ? {Prefer:'return=minimal'} : {})
+    },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  const raw = await response.text();
+  const result = raw ? JSON.parse(raw) : null;
+  if (!response.ok) throw Error(result?.error_description || result?.message || result?.error || 'Request failed.');
+  return result;
+}
+const rpc = (name, args, token) => request('/rest/v1/rpc/' + name, args, 'POST', token);
+const rows = query => request('/rest/v1/' + query);
+
+function lock() {
+  screenVersion++;
+  session = profile = activeChat = null;
+  account.reset();
+  panel.replaceChildren();
+  $('identity').textContent = $('status').textContent = $('gateStatus').textContent = '';
+  show('pad');
+}
+$('access').onclick = () => show('gate');
+$('back').onclick = $('lock').onclick = lock;
+addEventListener('pagehide', lock);
+function element(tag, text) {
+  const node = document.createElement(tag);
+  node.textContent = text;
+  return node;
+}
+function button(text, action) {
+  const node = element('button', text);
+  node.type = 'button';
+  node.onclick = () => run(action);
+  return node;
+}
+async function run(action, status = $('status')) {
+  if (pending) return;
+  pending = true;
+  const version = screenVersion;
+  status.textContent = '';
+  try { await action(version); }
+  catch (error) {
+    if (version === screenVersion) status.textContent = error.message;
+  } finally { pending = false; }
+}
+
+account.onsubmit = event => {
+  event.preventDefault();
+  const fields = Object.fromEntries(new FormData(account));
+  const action = event.submitter?.value;
+  run(async version => {
+    if (action === 'register') {
+      await request('/functions/v1/newphone-register', fields);
+      if (version !== screenVersion) return;
+      account.elements.invitation.value = '';
+      $('gateStatus').textContent = 'Account created. Choose Sign in and unlock.';
+      return;
+    }
+    const signedIn = await request('/auth/v1/token?grant_type=password', {
+      email: fields.username + '@newphone.invalid', password: fields.password
+    });
+    const token = signedIn.access_token;
+    if (!await rpc('np_verify_pin', {pin:fields.pin}, token)) throw Error('PIN did not match or is temporarily locked.');
+    const [own] = await request('/rest/v1/np_profiles?select=id,private_number,display_name', undefined, 'GET', token);
+    if (!own) throw Error('An invite-activated account is required.');
+    if (version !== screenVersion) return;
+    session = signedIn;
+    profile = own;
+    $('identity').textContent = own.display_name + ' · Private number ' + own.private_number;
+    account.reset();
+    show('phone');
+  }, $('gateStatus'));
+};
+
+function textForm(placeholder, maxLength, label, handle) {
+  const form = document.createElement('form');
+  const input = document.createElement('input');
+  input.required = true;
+  input.maxLength = maxLength;
+  input.placeholder = placeholder;
+  input.setAttribute('aria-label', placeholder);
+  form.append(input, element('button', label));
+  form.onsubmit = event => {
+    event.preventDefault();
+    const value = input.value.trim();
+    if (value) run(version => handle(value, version));
+  };
+  return form;
+}
+
+async function showContacts(version, title = 'Contacts') {
+  const [contacts, requests] = await Promise.all([
+    rows('np_contacts?select=contact_id,nickname'),
+    rows('np_friend_requests?select=id,sender_id,recipient_id,status&status=eq.pending&order=created_at.desc')
+  ]);
+  if (version !== screenVersion) return;
+  activeChat = null;
+  panel.replaceChildren(element('h2', title));
+  panel.append(textForm('Six-digit private number', 6, 'Send friend request', async (value, current) => {
+    if (!/^[1-9][0-9]{5}$/.test(value)) throw Error('Enter a six-digit private number.');
+    await rpc('np_request_friend', {target_number:Number(value)});
+    if (current !== screenVersion) return;
+    await showContacts(current, title);
+    $('status').textContent = 'Friend request pending.';
+  }));
+  for (const request of requests) {
+    const incoming = request.recipient_id === profile.id;
+    const peer = incoming ? request.sender_id : request.recipient_id;
+    panel.append(element('p', (incoming ? 'Incoming request · ' : 'Sent request · ') + peer.slice(0,8)));
+    if (!incoming) continue;
+    for (const [label, accept] of [['Accept',true],['Decline',false]]) {
+      panel.append(button(label, async current => {
+        await rpc('np_respond_friend', {request_id:request.id,accept_request:accept});
+        if (current === screenVersion) await showContacts(current,title);
+      }));
+    }
+  }
+  if (!contacts.length) panel.append(element('p','Add a contact to start a conversation.'));
+  for (const contact of contacts) {
+    const name = contact.nickname || 'Contact ' + contact.contact_id.slice(0,8);
+    panel.append(button(name, async current => {
+      const chat = await rpc('np_open_direct', {peer:contact.contact_id});
+      if (current === screenVersion) await showChat(chat,name,current);
+    }));
+  }
+}
+
+async function showChat(chat, name, version) {
+  const messages = await rows('np_messages?select=sender_id,ciphertext&conversation_id=eq.' + encodeURIComponent(chat) + '&order=created_at.desc,id.desc&limit=100');
+  if (version !== screenVersion) return;
+  activeChat = chat;
+  panel.replaceChildren(
+    button('‹ Contacts', showContacts),
+    element('h2', name),
+    button('Refresh messages', current => showChat(chat,name,current))
+  );
+  for (const message of messages.reverse()) {
+    panel.append(element('p', (message.sender_id === profile.id ? 'You: ' : name + ': ') + message.ciphertext));
+  }
+  panel.append(textForm('Message', 4000, 'Send message', async (value, current) => {
+    if (chat !== activeChat) return;
+    await rpc('np_send_message', {chat,payload:value});
+    if (current === screenVersion) await showChat(chat,name,current);
+  }));
+}
+$('contacts').onclick = () => run(showContacts);
+$('messages').onclick = () => run(version => showContacts(version,'Messages'));
+$('settings').onclick = () => run(async version => {
+  const [settings] = await rows('np_settings?select=preferences');
+  if (version !== screenVersion) return;
+  activeChat = null;
+  panel.replaceChildren(element('h2','Settings'), element('p','Private number ' + profile.private_number));
+  const link = element('a','Owner access');
+  link.href = 'owner.html';
+  panel.append(link);
+});
+render();
+</script>
+</html>
