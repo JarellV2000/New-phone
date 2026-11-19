@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NewPhone 2.0 Owner Access</title>
+<style>
+body{color:#f5f5f5;background:#121212;font:1rem system-ui;margin:0}
+main{max-width:30rem;margin:auto;padding:2rem 1rem}
+label{display:block;margin-top:.8rem}
+input,button{box-sizing:border-box;display:block;font:inherit;padding:.75rem;margin:.4rem 0;width:100%;border-radius:.5rem}
+button{color:white;background:#862323;border:0;cursor:pointer}
+output{display:block;overflow-wrap:anywhere}
+</style>
+<main>
+<h1>NewPhone 2.0 Owner Access</h1>
+<form id="account">
+<label>Username<input name="username" value="jarell" autocomplete="username" required pattern="[a-z0-9_]{3,24}"></label>
+<label>Password<input name="password" type="password" autocomplete="new-password" required minlength="12"></label>
+<label>Six-digit PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" required></label>
+<label>Setup invitation<input name="invitation" autocomplete="off" spellcheck="false" autocapitalize="off"></label>
+<button value="register">Activate owner account</button>
+<button value="login">Sign in and unlock</button>
+</form>
+<section id="owner" hidden>
+<h2>Invite controls</h2>
+<button id="create">Create invitation</button>
+<output id="token"></output>
+<div id="invites"></div>
+<button id="lock">Lock owner access</button>
+</section>
+<p id="status" role="status"></p>
+</main>
+<script type="module">
+const url = "https://ditmhbtzlghispkaowgw.supabase.co";
+const key = "sb_publishable_2kkNxvyShXlwdJdKy2mP3Q_RvchRa_a";
+const byId = (id) => document.getElementById(id);
+const form = byId("account");
+let accessToken;
+async function request(path, body) {
+  const response = await fetch(url + path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { apikey: key, ...(accessToken ? { Authorization: "Bearer " + accessToken } : {}), "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const raw = await response.text();
+  const payload = raw ? JSON.parse(raw) : null;
+  if (!response.ok) throw new Error(payload?.error_description || payload?.message || payload?.error || "Request failed.");
+  return payload;
+}
+const rpc = (name, body = {}) => request("/rest/v1/rpc/" + name, body);
+async function listInvites() {
+  const invites = await request("/rest/v1/np_invites?select=id,expires_at,used_at,revoked_at&order=expires_at.desc&limit=30");
+  byId("invites").replaceChildren();
+  for (const invite of invites) {
+    if (invite.used_at || invite.revoked_at || Date.parse(invite.expires_at) <= Date.now()) continue;
+    const button = document.createElement("button");
+    button.textContent = "Revoke invite " + invite.id.slice(0,8);
+    button.onclick = () => run(async () => {
+      await rpc("np_revoke_invite", { invite_id: invite.id });
+      byId("token").textContent = "";
+      await listInvites();
+    });
+    byId("invites").append(button);
+  }
+}
+let busy = false;
+async function run(action) {
+  if (busy) return;
+  busy = true;
+  byId("status").textContent = "";
+  try { await action(); }
+  catch (error) { byId("status").textContent = error.message; }
+  finally { busy = false; }
+}
+form.onsubmit = (event) => {
+  event.preventDefault();
+  const action = event.submitter.value;
+  const fields = Object.fromEntries(new FormData(form));
+  run(async () => {
+    accessToken = undefined;
+    if (action === "register") {
+      await request("/functions/v1/newphone-register", fields);
+      form.elements.invitation.value = "";
+      byId("status").textContent = "Account created. Select Sign in and unlock.";
+      return;
+    }
+    const session = await request("/auth/v1/token?grant_type=password", { email: fields.username + "@newphone.invalid", password: fields.password });
+    accessToken = session.access_token;
+    try {
+      if (!await rpc("np_verify_pin", { pin: fields.pin })) throw new Error("PIN failed or is temporarily locked.");
+      if (!await rpc("np_is_owner")) throw new Error("Owner access is required.");
+      await listInvites();
+      form.reset();
+      form.hidden = true;
+      byId("owner").hidden = false;
+    } catch (error) { accessToken = undefined; throw error; }
+  });
+};
+byId("create").onclick = () => run(async () => {
+  byId("token").textContent = await rpc("np_create_invite");
+  await listInvites();
+});
+byId("lock").onclick = () => {
+  accessToken = undefined;
+  byId("token").textContent = "";
+  byId("invites").replaceChildren();
+  byId("owner").hidden = true;
+  form.hidden = false;
+};
+</script>
+</html>
