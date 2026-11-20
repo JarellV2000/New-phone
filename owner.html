@@ -8,18 +8,20 @@ body{color:#f5f5f5;background:#121212;font:1rem system-ui;margin:0}
 main{max-width:30rem;margin:auto;padding:2rem 1rem}
 label{display:block;margin-top:.8rem}
 input,button{box-sizing:border-box;display:block;font:inherit;padding:.75rem;margin:.4rem 0;width:100%;border-radius:.5rem}
+[hidden]{display:none!important}
 button{color:white;background:#862323;border:0;cursor:pointer}
 output{display:block;overflow-wrap:anywhere}
 </style>
 <main>
 <h1>NewPhone 2.0 Owner Access</h1>
+<p id="setup-help" hidden>Choose a password and a six-digit PIN to set up your owner account.</p>
 <form id="account">
-<label>Username<input name="username" value="jarell" autocomplete="username" required pattern="[a-z0-9_]{3,24}"></label>
+<label id="username-field">Username<input name="username" value="jarell" autocomplete="username" required pattern="[a-z0-9_]{3,24}"></label>
 <label>Password<input name="password" type="password" autocomplete="new-password" required minlength="12"></label>
 <label>Six-digit PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" required></label>
-<label>Setup invitation<input name="invitation" autocomplete="off" spellcheck="false" autocapitalize="off"></label>
-<button value="register">Activate owner account</button>
-<button value="login">Sign in and unlock</button>
+<label id="invitation-field">Setup invitation<input name="invitation" autocomplete="off" spellcheck="false" autocapitalize="off"></label>
+<button id="activate" value="register">Activate owner account</button>
+<button id="sign-in" value="login">Sign in and unlock</button>
 </form>
 <section id="owner" hidden>
 <h2>Invite controls</h2>
@@ -35,6 +37,15 @@ const url = "https://ditmhbtzlghispkaowgw.supabase.co";
 const key = "sb_publishable_2kkNxvyShXlwdJdKy2mP3Q_RvchRa_a";
 const byId = (id) => document.getElementById(id);
 const form = byId("account");
+const setupCode = new URLSearchParams(location.hash.slice(1)).get("setup");
+if (setupCode && /^[a-f0-9]{64}$/.test(setupCode)) {
+  history.replaceState(null, "", location.pathname + location.search);
+  form.elements.invitation.value = setupCode;
+  byId("setup-help").hidden = false;
+  byId("username-field").hidden = true;
+  byId("invitation-field").hidden = true;
+  byId("sign-in").hidden = true;
+}
 let accessToken;
 async function request(path, body) {
   const response = await fetch(url + path, {
@@ -74,15 +85,19 @@ async function run(action) {
 }
 form.onsubmit = (event) => {
   event.preventDefault();
-  const action = event.submitter.value;
+  const action = event.submitter?.value ?? (byId("sign-in").hidden ? "register" : "login");
   const fields = Object.fromEntries(new FormData(form));
   run(async () => {
     accessToken = undefined;
     if (action === "register") {
       await request("/functions/v1/newphone-register", fields);
       form.elements.invitation.value = "";
-      byId("status").textContent = "Account created. Select Sign in and unlock.";
-      return;
+      byId("setup-help").hidden = true;
+      byId("username-field").hidden = false;
+      byId("invitation-field").hidden = false;
+      byId("sign-in").hidden = false;
+      form.elements.password.autocomplete = "current-password";
+      byId("status").textContent = "Account created. Signing in…";
     }
     const session = await request("/auth/v1/token?grant_type=password", { email: fields.username + "@newphone.invalid", password: fields.password });
     accessToken = session.access_token;
@@ -91,6 +106,7 @@ form.onsubmit = (event) => {
       if (!await rpc("np_is_owner")) throw new Error("Owner access is required.");
       await listInvites();
       form.reset();
+      byId("status").textContent = "";
       form.hidden = true;
       byId("owner").hidden = false;
     } catch (error) { accessToken = undefined; throw error; }
